@@ -4,7 +4,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const ejs = require("ejs");
-const md5 = require("md5");
+const bcrypt = require('bcrypt');
 
 const app = express();
 const port = 3000;
@@ -34,11 +34,13 @@ app.get("/login" , (req , res)=>{
     res.render("login");
 })
 
-app.post("/register" , (req , res)=>{
+app.post("/register" , async (req , res)=>{
     // console.log(req.body);
+    const userPassword = req.body.password;
+    const hashPassword = await bcrypt.hash(userPassword , 10);   //hashed password
     const user = new User({
         email: req.body.username,
-        password: md5(req.body.password)   //hashed password
+        password: hashPassword  
     })
     user.save();
     res.render("secrets");
@@ -47,11 +49,11 @@ app.post("/register" , (req , res)=>{
 app.post("/login" , async (req , res)=>{
     // console.log(req.body);
     const userEmail = req.body.username;
-    const userPassword = md5(req.body.password);  //hashed password
+    const userPassword = req.body.password;
     const userExists = await User.findOne({email: userEmail});
     
     if(userExists) {
-        if(userExists.password === userPassword){
+        if(await bcrypt.compare(userPassword , userExists.password)){   //comparing hashed password with the password user entered
             res.render("secrets");
         }
         else{
